@@ -1,0 +1,107 @@
+{
+    "$schema": "./zowe.schema.json",
+    "profiles": {
+        "zosmf": {
+            "type": "zosmf",
+            "properties": {
+                "port": 449,
+                "rejectUnauthorized": false
+            },
+            "secure": []
+        },
+        "tso": {
+            "type": "tso",
+            "properties": {
+                "account": "",
+                "codePage": "1047",
+                "logonProcedure": "IZUFPROC"
+            },
+            "secure": []
+        },
+        "ssh": {
+            "type": "ssh",
+            "properties": {
+                "port": 22
+            },
+            "secure": []
+        },
+        "base": {
+            "type": "base",
+            "properties": {
+                "host": "10.1.2.55",
+                "rejectUnauthorized": false,
+                "user": "CUST030",
+                "password": "CUST030"
+            }
+        },
+        "endevor": {
+            "type": "endevor",
+            "properties": {
+                "port": 6002,
+                "protocol": "http",
+                "host": "10.1.2.120",
+                "rejectUnauthorized": false
+            },
+            "secure": []
+        },
+        "endevor-location": {
+            "type": "endevor-location",
+            "properties": {
+                "instance": "NDVRWEBS",
+                "environment": "DEV",
+                "system": "MARBLES",
+                "subsystem": "MARBLES",
+                "type": "COBOL",
+                "stageNumber": "1",
+                "maxrc": 8,
+                "comment": "Scripted",
+                "ccid": "SCRIPTED"
+            },
+            "secure": []
+        },
+        "cics": {
+            "type": "cics",
+            "properties": {
+            },
+            "secure": []
+        },
+        "ebg": {
+            "type": "ebg",
+            "properties": {
+                "protocol": "https",
+                "host": "",
+                "port": 0
+            },
+            "secure": [
+                "user",
+                "token"
+            ]
+        },
+        "zftp": {
+            "type": "zftp",
+            "properties": {
+                "port": 21,
+                "secureFtp": true
+            },
+            "secure": []
+        },
+        "ims": {
+            "type": "ims",
+            "properties": {},
+            "secure": []
+        }
+    },
+    "defaults": {
+        "zosmf": "zosmf",
+        "tso": "tso",
+        "ssh": "ssh",
+        "base": "base",
+        "endevor": "endevor",
+        "endevor-location": "endevor-location",
+        "cics": "cics",
+        "ebg": "ebg",
+        "zftp": "zftp",
+        "ims": "ims"
+    },
+    "autoStore": true
+}
