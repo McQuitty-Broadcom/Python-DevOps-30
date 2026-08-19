@@ -5,226 +5,131 @@
 - Write automation scripts for mainframe app to build and deploy
 - Build a Jenkins CI/CD pipeline for mainframe app
 
-## 2. z/OS Services
+## 2.  Accessing the environment.
+- The system is located at https://sn.ws.broadcom.com
+- Your login: is _SNCUST030
+- The password is SN_PASSWORD
 
-- You have been assigned a single set of login credentials for accessing all of the Mainframe resources on a remote z/OS LPAR which is hosted by Broadcom, including TSO, z/OSMF,CICS, Db2 and CA Endevor SCM.
+One you log in, select the environment:
+![simpleCommand](assets/content/login.png)
+
+## 3. z/OS Services
+
+- You have been assigned a single set of login credentials for accessing all of the Mainframe resources on a remote z/OS LPAR which is hosted by Broadcom.
+
 - Your userid is CUST030.
 - Your password CUST030.
 
 Service                                                                                                                                                            Connection Information (Host:Port)
 z/OSMF                                                                                                                                                             TODO:1443
-CICS                                                                                                                                                               TODO:_CICS_PORT_
 CA Endevor                                                                                                                                                         TODO:6002
 
-## 3. Marbles
+This is just information for you.  The details have been stored in your zowe.config.json file for you.
 
-![Graphic 1 from slide 5](assets/content/slide-005-image-02.jpg)
+## 4. DOGGOS
+If you have been to previous Broadcom workshops, you may be familiar with DOGGOS.  It's an application to track dog adoptions.  This version is a batch application.  The assets are tracked in Endevor.  Rather than spending time modifying the application, we are going to simply build and execute the application.  After that, the application will be deployed and run, via some job actions.  
 
-The overall application is desgined with multiple components.  While the application web interface isn't available, we can access the services through JCL and CICS transactions.
-![Graphic 1 from slide 6](assets/content/slide-006-image-02.jpg)
+As part of your learning, the important aspects are understanding how to automate commands (such as downloading code, generating code) and jobs (submitting, downloading output).
 
-## 4. State of Marbles App - Before Workshop
-The application has a limitation.  The database contains marble color, quantity and cost.  There's also a CICS transation to create, update and delete marbles.
-![Graphic 1 from slide 8](assets/content/slide-008-image-02.png)
+Finally, we want to automate the job so it can be run from a pipeline tool, such as Jenkins.  
 
-## 5. Desired State of Marbles App - After Workshop
-The application needs to be updates so the cost can be updated.  Luckily, the database already supports the cost information, but the CICS application doesn't update the cost information.  
-![Graphic 1 from slide 9](assets/content/slide-009-image-02.png)
+## 5. Developer Environment
 
+- Access the terminal using the Hamburger menu (three horizontal lines on the upper right), Terminal, New Terminal.  A terminal will be displayed at the bottom of the screen.
+  - Issue `zowe --h`
+  - Issue `zowe plugins list`
+  - Issue `npm -h`
+  - Issue `git help`
+  - Issue `duty --help`
 
-## 6. Section I: Overview and Environment Setup
+  - We will be using Duty, a Python framework, to automate our actions.  
 
-## 7. Steps for Section I
+## 6. Building the code.  
 
-- Currently the CICS transaction is able to update the quantity of a marble. We want to enhance this transaction to be able to update the cost of a marble in addition to its existing functionality.
-- Steps:
-  - Download the COBOL transaction code to your remote desktop from Endevor
-  - Edit the code in VS Code
-  - Upload the code to Endevor
-  - Build (generate) the code on Endevor
+In order to automate the build of an application, we need to build it manually first.  Our application has 2 parts, a COBOL file, which has dependencies on COPYBOOKS.  And it also has an LNK file.  We must build each of those manually to ensure we don't have any errors.
 
-- Note: all the following steps should be performed from your assigned remote VS Code environment.
+- Run the following commands and ensure we get a 0000 return code:
+  - `zowe endevor generate DOGGOS30 --type COBOL --os --maxrc 0 --sn 1 --cb`
+  - `zowe endevor generate DOGGOS30 --type LNK --os --maxrc 0 --sn 1 --cb`
 
-## 8. Developer Environment
+- This command uses Zowe to interact with Endevor.  We pass the command, `generate` and it takes an element name as a parameter.  
+- We pass the following options:
+  - `--type` determines the element type to work with.
+  - `--os` overrides signout, in case someone else has it signed out.  This is a demo environment, and the items can sometimes be signed out by someone else.
+  - `--maxrc` is used to say the maximum return value allowed before returning an error.
+  - `--sn` this is the environment stage number
+  - `--cb` is copy-back.  If the element is somewhere up the map, it will bring it back to DEV Stage 1.
 
-- Access the terminal using the Hamburger menu (three horizontal lines), Terminal, New Terminal
-  - Issue "zowe --h"
-  - Issue "zowe plugins list"
-  - Issue "npm -h"
-  - Issue "git help"
+If you have any issues with these commands, reach out to the instructions.
 
+## 7. Running the Application
+- This is a batch application.  Once it is compiled, this application is ready to run.
 
-## 9. Section II: Modify Cobol Code
+- To execute the application and see the output, we can call `zowe jobs`.
+  - `zowe jobs submit dataset CUST030.PUBLIC.JCL(NDRUNDOG) --vasc`
 
-## 10. Download the element from Endevor - Step 1
+- `--vasc` is a great command when testing.  The output is displayed across your screen when the job completes.  For jobs like this one, we can see the job output and ensure the application runs. 
 
-- We need to modify a marble.  Your Marble is _MARBLE_NUM_ let's download to our remote desktop using another command.
-- Note: The command below uses options provided in the command which take precedence over your default profile. This includes the Endevor system, subsystem, etc.
-- Position your terminal to the folder where you want the file downloaded to.
-- Download element:
-  - zowe endevor retrieve element _MARBLE_NUM_ --type COBOL --to-file _MARBLE_NUM_.cbl --override- signout
+- You should see output with dog adoptions like this:
+![Graphic 1 from slide 18](assets/content/doggos_output.png)
 
-## 11. Edit the source code - Step 2
-
-![Graphic 1 from slide 18](assets/content/slide-018-image-02.png)
-
-- We are now ready to make the code updates to implement the ability to change the cost of a marble using a CICS transaction.
-- Open your source code using the explorer view (Upper Left Corner)
-- Find the following code sequence and remove the highlighted text and Save the changes locally:
-
-## 12. Upload the element to Endevor - Step 3
-
-- After making the code changes locally, we need to upload the element to Endevor in order to perform a build.
-- Ensure your terminal is positioned to the folder that contains the source file.
-- Upload element:
-  - `zowe endevor update element _MARBLE_NUM_ --type COBOL --os --ff _MARBLE_NUM_.cbl`
+## 8. Reporting for Duty
+Now that you've used the CLI to successfully make code changes and perform generates on Endevor, it's time to automate these steps. CLI commands can be embedded in scripts that you can run repeatedly from your local machine. These same scripts can also be called from CI/CD tools like Jenkins. Task Runners are a way to organize and interact with your automation scripts more easily.
 
 
-## 13. Generate the code
+We will be using a Python based Task Runner called duty for this section. Task Runners can also be called from CI/CD tools like Jenkins
 
-## 14. Generate the elements
-
-- Now that our code changes have been uploaded to Endevor, we can compile it using an Endevor generate action to see if there are any errors.
-- Generate element.
-    - There are two --type of elements you want to generate, COBOL and LNK.
-    - `zowe endevor generate element _MARBLE_NUM_ --type COBOL --os`
-    - `zowe endevor generate element _MARBLE_NUM_ --type LNK --os`
-    - HINT: Use your up arrow key and just change the type.
-
-- Ensure that the generate actions are successful:
-  - You should see text similar to GENERATE of _MARBLE_NUM_.COBOL finished with 0000 in the output.
-
-## 15. Section III: Deploy Marbles Application Manually
-
-## 16. Deployment - Introduction
-
-- Deployment is another step that is commonly automated. Once you've built your code and binary artifacts like load modules are ready, you may want to copy these artifacts to a system where you can run the program.
-- Identify deployment steps
-- Identify requirements for parametrization in deployment
-  - Do the build artifacts come from a different location depending on whether it's a dev build or a team build?
-  - Does the deployment system vary depending on the stage?
-
-- Automate the deployment
-- Note: Deployment scripts should be written in a parameterized fashion so that the same script can be used to deploy for devtest, QA, system-test or even production.
-
-## 17. Steps for Section III
-
-- Deployment for marbles requires us to copy the load modules, and activate the changes in the target CICS environment.
-  - Deploy manually using CLI commands
-  - Create and implement a Deploy duty task
-  - Test the deployment
-
-## 18. Deploy manually
-
-- When we generated the LNK element in Endevor in previous sections, Endevor created load modules. We can deploy these load modules to the proper dataset location that CICS is using and refresh CICS to pick up the changes.
-- Confirm that the load modules exists in the dataset
-  - We can now proceed to list the members in our LOADLIB and DBRMLIB to ensure our MARBLE entry exists.
-    - `zowe files list all-members "PRODUCT.NDVR.MARBLES.MARBLES.D1.LOADLIB"`
-    - `zowe files list am "PRODUCT.NDVR.MARBLES.MARBLES.D1.DBRMLIB"`
-
-## 19. Deploy manually
-
-- Copy the LOADLIB and DBRMLIB modules to the desired location
-  - There are multiple ways to copy load modules using Zowe. For this workshop, we are going to make use of a job to move the elements.
-  - Now, let's try to copy our MARBLE element from the source libraries to the destination:
-    - `zowe jobs submit data-set "CUST030.MARBLES.JCL(MARBCOPY)" --vasc`
-
-## 20. Deploy manually
-
-- Submit JCL to perform the Bind & Grant
-  - `zowe jobs submit data-set "CUST030.MARBLES.JCL(MARBIND)" --view-all-spool-content`
-    - This function runs the command and returns all the job content
-  - Alternative approach
-    - `zowe jobs submit data-set "CUST030.MARBLES.JCL(MARBIND)"`
-    - Example returned jobid: JOBXXXXX
-    - `zowe jobs view job-status-by-jobid JOBXXXXX`
-    - Confirm return code = CC 0004
-
-## 21. Deploy manually
-
-- Activate the transaction changes on CICS
-  - We will make use of the CICS plugin to refresh our CICS program.
-  - Now, let's try to refresh our CICS program
-    - The program that needs refreshed is named Marble.
-    - `zowe cics refresh program _MARBLE_NUM_`
-
-## 22. Test manually
-
-- Run the command manually:
-  - `zowe console issue command "F CICSTRN1,_CICSTRANS_ CRE _COLOR_ 1 2" --console-name CUST030`
-    - Did you get a +SUCCESS message?
-  - Check the database
-    - `zowe jobs submit ds "CUST030.MARBLES.JCL(MARBDB2)" --vasc`
-    - Ensure database contains your marble with quantity and cost
-
-## 24. Section III: Automation Automate the Build
-
-## 25. Automate the Code Build - Introduction
-
-- Now that you've used the CLI to successfully make code changes and perform generates on Endevor, it's time to automate these steps.
-- CLI commands can be embedded in scripts that you can run repeatedly from your local machine.
-- These same scripts can also be called from CI/CD tools like Jenkins
-- Task Runners are a way to organize and interact with your automation scripts more easily.
-- We will be using a Python based Task Runner called duty for this section. Task Runners can also be called from CI/CD tools like Jenkins
 - Note: Task Runners are an abstraction layer over scripts. They are helpful but are not a necessity.
 
-## 26. Steps for Section III
+This project uses [`duty`](https://pypi.org/project/duty/) task runner to wrap a set of Zowe CLI
+commands used to build and run a COBOL/Endevor element on a mainframe, then archive the results.
 
-- Now that you've used the CLI to successfully make code changes and perform generates on Endevor, we want to automate the following:
-  - Generate operations for COBOL and LNK
-  - Build the application
-    - It should generate both the COBOL and LNK elements in a single task
+It is written in Python and has components that are already installed in this environment. 
 
-## 27. Starting the Automation
+Duty has a command line option that makes it easy to incorporate addition tasks, which link to commands.
 
-- We have performed some functions for you, like downloading the code and getting it ready.
-  - Your code is located in /projects.
-  - When you ran the duty command earlier, you used that code.
+- Run `duty --help` to see the available command. 
 
-## 28. Create a Build Task in Duty
 
-- Generating the source element and the LNK element on Endevor are steps that you'll need to perform every time after making code changes to create the load module. It's a great task to automate, so that you don't have to keep doing it manually. Let's start by reviewing our duties.py and existing duty build-cobol task. Then you will create a task in duty called build-lnk.
-- Review duties.py: A duties.py is a file in your project directory that automatically loads when you run the duty command.
+## 9.  Duties Structure - Imports
+Open the duties.py file to see the current implementation.
+
+The top of the file contains import statements. These import libraries to support a functionality.
+
 - At the top of the duties.py, take note of three packages that we are using:
   - `import sys`:  Accesses files and system resources
   - `import duty`: Imports the duty library files
   - `import zowesupport`: A set of helper files to run zowe commands, keeping the duties file simple and easy to understand. 
 
-- Duty is a library of functions.  Without getting to detailed, there's a decorator (@duty) that tells Python the next function is part of the Duty task runner.  
+## 10.  Duties Structure - Tasks
+- Duty is a library of functions.  Without getting too detailed, there's a decorator (@duty) that tells Python the next function is part of the Duty task runner.  
 - Python is indention based, similar to COBOL.  Indentation matters. 
 - "def build_cobol(ctx):" is a function.
   - def: Declares we are creating a function
-  - buid_cobol: This is the function name
+  - build_cobol: This is the function name
   - (ctx): This is a list of parameters.  In this case, we are passing a context object.  You'll also see that for the commands we call.
 
 - """ ... """ indicates a multiline comment.  Using Duty, it is also the description of the task we are calling.  This is a user friendly term used when accessing duty.  
 
 - When the indentation returns to the first column, the previous function ends.  
 
-## 29. Reusable Code - config.json
+## 11. Decorators
+The decorator @Duty defines the next function as the task name.
 
-![Graphic 1 from slide 36](assets/content/slide-036-image-02.png)
+Looking at the current implementation of build_cobol:
+```python
+@duty
+def build_cobol(ctx):
+    """Build Cobol Element"""
+    command = "echo build cobol"
+    simpleCommand(ctx, command, "output")
+```
 
-- Using a configuration file allows the script to remain the same, but passing in variables for the differences.
-- Here's a file call config.json containing the values
-- Instead of hardcoding the values in the script, the script can read these values.
-- To use these values, we can use config.testElement and it will read the color from this file and replace it in the code.
+This creates a Duty task named `build-cobol`.  
+The `command=` is a string that details the command we want to run. 
+The `simpleCommand` runs the command and stores the output in a folder called "output"
 
-
-## 30. Create a Build task in duty
-
-- Review build_cobol task
-  - Name of task: build_cobol
-  - Description of task (in the """ block): Build COBOL element
-  - command = f"zowe endevor generate element {config.testElement} --type COBOL --os --maxrc 0 --sn 1"
-    - This contains an f-string.  Using {config.testElement}, Python will automatically insert the testElement's name from the config file.  
-    - This is much easier to read than Rexx's inline concatenation.  While this example is simple, when using lots of variables, it can become much harder to read. 
-    - This version is Python's inline concatentation:
-      - command = "zowe endevor generate element " + {config.testElement} + " --type COBOL --os --maxrc 0 --sn 1"
-  - simpleCommand runs the command with all the error checking in another section. This is reused a lot, so a function was created to make the code cleaner. The second option includes archiving the output to a directory.
-
-## 31. Create a Build task in duty
-
+## 12. Understanding Simple Command
 ![simpleCommand](assets/content/simpleCommand.png)
 
 - It's important to understand how the simpleCommand works.  
@@ -243,23 +148,54 @@ The application needs to be updates so the cost can be updated.  Luckily, the da
 - writeToFile: This calls another function, which writes the content to an output folder.
 - if not expectedOutputs: This is used when looking for specific output.  If it doesn't find the output, it ends the application and says why.
 
-## 32. Create a Build-LNK task in duty
+Close zowesupport.py.
 
-- Run duty build-cobol and verify it completes successfully.
-  - In the terminal: duty build-cobol
-- Create a build-lnk duty task using the build-cobol duty task as a reference.
-  - Simply copy the 4 lines (@duty until simpleCommand)
-- Ensure the build-lnk task and description appear when you issue duty (without parameters) or duty --help
-- Ensure the build-lnk task completes without error when you issue:
-  - duty build-lnk
+## 13. Automating the Builds.
+Using the `def build_cobol(ctx):` function, let's modify the command line. 
+It currently shows `command = "echo build cobol"` but we need it to run the build command we used earlier.
 
-![simpleCommand](assets/content/buildTask.png)
+There's a feature in Python strings called interpolation.  It's a fancy word for using symbols to substitute variable values.  Instead of regular string concatenation, this allows us to write everything in-line, making it more readable.  Interpolated strings start with f like f"This is my {varname}".
 
-## 33. Combine Build-Cobol and Build-LNK
+Let's change the command string to look like our command, but let's import values from a configuration file.  We are using `config.json` to contain value names.  So, if we pass config.value, it will substitute the value for us.
 
-- Let's take the duty build-cobol and duty build-lnk tasks and combine them into a single duty task. 
+This allows us to reuse the same file and simply change the configuration file to work with similar applications.
+
+Open the config.json file and note it contains values like "Element".
+
+Close the file and back in duties.py, let's modify that command value in the build-cobol section to look like:
+
+`command = f"zowe endevor generate element {config.element} --type COBOL --os --maxrc 0 --sn 1 --cb"`
+
+Save the file, and in the terminal run:
+`duty build-cobol`
+
+It should return with output that looks like this:
+![duty-cobol-output](assets/content/duty-cobol-output.png)
+
+## 14. Updating Build-Lnk
+We've successfully build the COBOL program in the last step.  We can literally copy the same `command=` line and paste it into the `build-lnk` section and modify it.
+
+Make it look like this:
+`command = f"zowe endevor generate element {config.element} --type LNK --os --maxrc 0 --sn 1 --cb"`
+
+The entire function should look like this:
+```python
+@duty
+def build_lnk(ctx):
+    """Build LNK Element"""
+    command = f"zowe endevor generate element {config.element} --type LNK --os --maxrc 0 --sn 1 --cb"
+    simpleCommand(ctx, command, "output")
+```
+
+If you are interested in seeing the output of the compile commands, you can view the output in the output folder.  There's a file for each run.  It will detail the command run and any output, including errors.
+
+Run `duty build-lnk` and ensure you get a successful run.
+
+## 15. Simplifying the Build.
+Let's take the duty build-cobol and duty build-lnk tasks and combine them into a single duty task. 
   - duty tasks can call any function, including the tasks created in the duty file
-- The following duty task combines the existing build tasks into a single duty build task:
+
+The following duty task combines the existing build tasks into a single duty build task:
   """text 
   @duty
   def build(ctx):
@@ -274,24 +210,13 @@ The application needs to be updates so the cost can be updated.  Luckily, the da
 
 ![simpleCommand](assets/content/buildLnk.png)
 
-## 34. Completed Build Sequence Command
+We can now build one or more components with a single command.  And each command output it tracked separately within the output folder.
 
-- Completed
+## 16. Let's run the application
+Last time we ran the application, in the command line we executed:
+`zowe jobs submit data-set "CUST030.MARBLES.JCL(MARBCOPY)" --vasc`
 
-## 35. Section IV: Automate Deployment
-
-## 36. Create and implement a duty Deploy task
-
-- Similar to creating the duty build tasks, we will now create duty tasks to deploy our changes.
-  - Review copy task
-  - Create the bind-n-grant task
-  - Create the cics-refresh task
-  - Combine individual deploy tasks into one deploy task.
-
-## 37. Create and implement a duty Deploy task
-
-- Review copy task to copy the LOADLIB and DBRMLIB
-  - This task uses a job to copy the lib elements to their destination
+But now we have a function to download the job, capture output values and retun information to us called `submitJobAndDownloadOutput`.   We call this from the Duty Run command.
   - It uses a function, submitJobAndDownloadOutput(...) to submit the job, check the return code and write the output.
   - It takes 4 parameters:
     - ctx: The Duty context object
@@ -299,26 +224,9 @@ The application needs to be updates so the cost can be updated.  Luckily, the da
     - folder: This is the folder where the output is stored
     - max return code:  This is a number indicating when an error should be reported
 
-## 38. Implement a duty Bind and Grant task
+If you right click on the submitJobAndDownloadOutput function, it takes you to zowesupport.  This is where the function is defined.
 
-- Using the copy task, create a bind_and_grant task
-  - Duplicate the Duty Copy task, ensure you inlcude the @duty decorator.
-  - Paste it and modify the code to look like this:
-  """python
-  @duty
-    def bind_and_grant(ctx):
-    """Run Bind and Grant Jobs"""
-    dataset = f"{config.bindGrantJCL}"
-    submitJobAndDownloadOutput(ctx, dataset, "job-archive", 4)
-
-  """
-
-  - The bind-n-grant task to submit MARBIND JCL and verify CC <= 0004
-
-## 39. Review submitJobAndDownloadOutput
-
-![Graphic 1 from slide 46](assets/content/slide-046-image-02.png)
-- Just like before, find "submitJobAndDownloadOutput", right click and select "Go To Definition".
+![submitJobAndDownloadOutput](assets/content/submitJobAndDownloadOutput.png)
 
 - submitJobAndDownloadOutput submits the dataset
   - it takes 4 outputs, 3 are required:
@@ -338,196 +246,126 @@ The application needs to be updates so the cost can be updated.  Luckily, the da
   - If there's an error, that is returned to the calling task
   - Captures output and writes it to disk
 
+## 17. Updating the run Job
+Instead of writing a bunch of code to the same work each time, we can just pass the dataset name into the `submitJobAndDownloadOuput` function and it will do all the work for us:
 
-## 40. CICS NewCopy/Refresh
-  - In order to execute the new code, it must be refreshed into CICS.
-  - Zowe offers a command to perform this function.
-    - `zowe cics refresh program _MARBLE_NUM_`
+Let's update the `dataset=` command.  As it sits, it won't actually run the job for us (unless your system has a dataset named "echo run job", but that's highly unlikely).
 
-  - Let's create it so it uses the config file:
-    - copy the simpleCommand implementation. Use something like build_link or build_cobol
-    - paste it and modify the name, the description (in the """ block), and command.
-    - Use an f-string to pass the program from the configuration file so the file isn't hard coded to a single marble. 
-
-  - It should look something like this:
-  """python 
-  @duty
-    def cics_refresh(ctx):
-    """Refresh CICS Program"""
-    command = f"zowe cics refresh program {config.cicsProgram}"
-    simpleCommand(ctx, command, "output")
-  """
-
-## 41. Combine the tasks
-- The Copy, Bind-n-Grant and CICS Refresh functions have been created
-- Let's combine them into a single task, so we can run all the command using a single command
-  - Using the code you created to combine the build-cobol and build-lnk tasks into a single build task as a reference, combine the following tasks into a single deploy task that will deploy the program using:
-    - copy
-    - bind-n-grant
-    - cics-refresh
-  - Ensure the tasks run in the correct order
-  - Ensure your task appears when issuing duty --help
-  - Run duty deploy
-  - Ensure your task completes without error
-
-- The code should look like this:
-"""python
+`dataset = f"{config.runJCL}"` so the function looks like this:
+```python
 @duty
-  def deploy(ctx):
-    """Deploy the application"""
-    copy(ctx)
-    bind_and_grant(ctx)
-    cics_refresh(ctx)
-"""
+def run(ctx):
+    """Run Bind and Grant Jobs"""
+    dataset = f"{config.runJCL}"
+    submitJobAndDownloadOutput(ctx, dataset, "output/job-archive", 0)
+```
 
-## 42. Section VI: Add Code Build to Continuous Integration
+This will download the output to the `output/job-archive` folder, with each spool file being in a directory named after the job.
 
-## 43. Workshop Environment
+Run `duty run` and check the output/job-archive folder.  
 
-## 44. Continuous Integration - Introduction
+The output will list the job number.  Using the job number, look in the output/job-archive folder, find the job folder, expand the RUN folder, and view the OUTREP.txt file.  This is the output of the program.
 
-- Task runners help individual developers run their automation scripts easily and avoid wasting time doing mundane tasks. We can take this one step further and allow many of these tasks to be performed by CI orchestrators when code changes occur in a shared team repository.
-  - Identify tasks that need to be performed after code changes are made at a shared level.
-  - Create stages in CI orchestrators for these tasks
-  - Call automated scripts from these stages
+You've now successfully automated the build and running process of DOGGOS.
 
-- Note: In addition to automating these steps from CI, you will likely want to automate the trigger of the CI process from the shared code repository when code changes occur.
+## 18. Creating the Pipeline
+Before we log into Jenkins, let's set up the the build process.
 
-## 45. Steps for Section VI
+Open `Jenkinsfile` and look at the structure.  The language is called Groovy. 
 
-- In our case, the build step is a common one that could be performed from CI once a code change is made in Endevor. Let's add it to a Jenkins pipeline.
-- Log in to Jenkins, view Workshop_030 project, and verify pipeline runs.
-- Review Jenkinsfile
-- Enhance Jenkinsfile to build project
-  - Enhance build stage in Jenkinsfile to run duty build, duty deploy and npm test
-  - Add Environment variables to supply connection and project details.
+![jenkinsfile](assets/content/jenkins_file.png)
 
-- Manually kick off the pipeline to test
+## 19. Reviewing Jenkinsfile
+`pipeline` defines the start of the pipeline object.  Everything within the block in pipeline work.
+`agent` defines where the code will actually run.  There's an agent defined in Jenkins and this says which one to use.
+`environment` defines any environment variables.  In this case, we are creating a folder with a virtual environment to store temporary files.
 
-## 46. Jenkinsfile Overview Terms
+`stages` are the actual devops stages.  We've defined `local setup`, `build` and `run`.
 
-- Pipeline - defines the overall pipeline structure
-- Agent - defines where the code will execute
-- Environment - defines the environment variables for use in other commands
-- Stages - defines the start of the stages
-- Stage - defines each stage
-- Post - performed after running the stages section
+`post` is something that runs after the build has completed.
 
-## 47. Jenkinsfile
+## 20. Local Setup
+A local setup area can be useful for doing pre-checks, setting up environments, and performing housekeeping.
 
-- To ease troubleshooting and ensure everything is set up, local setup does the following:
-  - Verifies version of node, npm, zowe, zowe plugins
-  - Installs duty-cli
-  - Installs npm dependencies
-- This ensure all thecomponents are available.
-- It then creates dummy profiles, so the code is cleaner. These profiles are destroyed when the run finishes. This provides cleaner code, but still has security as usernames, passwords and hostnames are obfuscated.
+In this case, we are printing the version of the common tools being used.  
+The `python3 -m venv $VENV --clear` command sets up a new virtual environment.
+The next command, `$VENV/bin/python -m pip install --no-index --find-links ...` ensures we have duty installed in the agent machine.
 
-## 48. Log in to Jenkins
+## 21. Build
+This is where the build runs.   We need to specify where Duty is running, so we will change the `sh 'echo build'` to 
 
-![Graphic 1 from slide 76](assets/content/slide-076-image-02.png)
+`sh '$VENV/bin/duty build'`
 
-- Jenkins is a hosted application running on a web server. You can access it from most web browsers.
-- Log in to Jenkins: http://mfwsone.broadcom.com/jenkins/
-  - Username: workshop_030
-  - Password: 030_workshop
+## 22. Run
+This runs the application, so we need to change the `sh 'echo run'` to:
 
-- Verify that the environment is in the right starting state
-  - Click on the name of your project (Workshop_030)
-  - Select the master branch
-  - Click Build Now in the left side menu and verify the project builds successfully.
-    - Build Now icon is shown below.
+`sh '$VENV/bin/duty run'`
 
-## 49. Review Jenkinsfile
+## 23.  Saving it to Git
+We need the files to be pushed back into the git repo.  Using git we can run 
+`git commit -a -m "Updating files"` to commit the changes.
 
-- A Jenkinsfile is a text file that contains the definition of a Jenkins Pipeline and is checked into source control. Using a Jenkinsfile, which is checked into source control, enables
-  - Code review/iteration on the pipeline
-  - Audit trail for the pipeline
-  - Single source of truth for the pipeline
+We then need to push them to a remote system, so Jenkins can get the file and run the pipeline.
 
-- More detailed information is available at https://jenkins.io/doc/book/pipeline/jenkinsfile/
+`git push`
 
-## 50. Review Jenkinsfile
+This should push the files to GitHub so Jenkins will be updated.
 
-- Environment variables can be declared within an environment directive or with a withEnv step.
-  - An environment directive in the top-level pipeline block applies to all steps within the pipeline
-  - An environment directive within a stage will only apply those variables to that stage.
+## 24. Setting up Jenkins Pipeline
 
-- The stages directive contains various pipeline stages and the steps directive provides the tasks for each stage.
+If you go back to the main page (after you logged in, where you launched VS Code), you will see a link for Jenkins:
 
-## 51. Updating the Jenkinsfile
+![main_launch](assets/content/main_launch.png)
 
-- Implement the Build stage by calling the Build duty task.
-  - Locate the build stage in your Jenkinsfile
-  - Remove the following line of code which simply echoed out a statement:
-    - sh "echo build"
+Click on Jenkins.  It will prompt you to log in.
 
-- Uncomment the ensuing withCredentials code block.
-  - Inside this block, we will have access to eosCreds. It is defined in Jenkins.
-  - We define the user environment variable to be ZOWE_OPT_USER and the password to be ZOWE_OPT_PASSWORD because Zowe can be influenced by environment variables.
-  - Let's take a moment to discuss command line precedence.
+Use the following credentials:
+Username: _JENKINSCUST030
+Password: Mfuser30@26
 
-## 52. Zowe Command Line Precedence
+You will be presented with a page that will contain some builds.  
 
-- You can specify any option on any command through the use of environment variables using the prefix ZOWE_OPT_.
-- For example, you can specify the option --host by setting an environment variable named ZOWE_OPT_HOST to the desired value.
-- For more information on defining environment variables, please reference: https://docs.zowe.org/stable/user-guide/cli-configuringcli.html#defining-environment-variables
-- When a Zowe command is run, the order of precedence for determining the option values to use is:
-  - Command line arguments
-  - Environment variables
-  - Profile settings
-  - Default values
+## 25. Creating a build
+Most of our workshops focus on getting to this point and providing a cooking show method, where a lot of work is already done.  We are only abbreviating a small portion.  This is not a production environment, and we would use a credential store to hold values.  Outside of that, everything else is just like creating a new build.
 
-## 53. Updating the Jenkinsfile
+Let's create a build using your name.  You will see other's builds in this environment, so don't be alarmed if the screen shows more build definitions as you work through this.
 
-- Add the following command inside the withCredentials block to instruct Jenkins to run the duty build task you created as part of build stage:
-  - sh 'duty build'
+In the upper left corner, click New Item.  
+![new_item](assets/content/jenkins_new.png)
 
-## 54. Enhance Jenkinsfile for Deploy
+This will allow us to create a new build.
 
-- Deployment for marbles requires us to copy the load modules, and activate the changes in the target CICS environment.
-  - Deploy manually using CLI commands
-  - Create and implement a Deploy duty task
-  - Create and implement a Deploy Jenkins stage
+## 26. Setting the Build Name
+![new_pipeline](assets/content/jenkins_pipeline.png)
 
-## 55. Create and implement a Deploy Jenkins stage - Step 4
+In the "Enter an Item Name" field, enter:
+Python-DevOps-CUST030
 
-- Implement Deploy stage
-  - Uncomment withCredentials block
-  - Call the duty deploy task that you created. This will need placed inside the inner withCredentials block.
-  - Note: Plugins also inherit the ZOWE_OPT_ vars, but can be overridden on the command line.
+This will give you a unique name for your build and not conflict with another user.
 
-## 59. Run the pipeline
+Then select Pipeline and click next.
 
-  - Commit and Push Code to GitHub
-  - Log in to Jenkins and build your project
-    - Debug any issues that may arise. Reach out to facilitator for guidance if needed.
+## 27. Setting up the Build
+On the left side, click "Pipeline" and the screen will move to the pipeline section:
+![define_pipeline](assets/content/jenkins_pipeline_value.png)
 
-## 60. Commit and push changes to GitHub
+Change the value from Pipeline script to Pipeline script from SCM.
+![script_pipeline](assets/content/jenkins_pipeline_script.png)
 
-- To Review the files you have changed before committing:
-  - `git status`
-- There may endevor reports you wish to delete, commit or only keep locally.
-  - If you wish to only keep them locally, add endevor-report*.txt to your .gitignore file in your project's root directory. You can run git status again to verify you no longer see the endevor-report files.
-- Commit your changes when satisfied:
-  - `git commit -a -m "Add duty build tasks"`
+Change SCM from none to git.  The screen will change adding new fields.
 
-## 61. Commit and push changes to GitHub
+The repository URL will be `https://github.com/McQuitty-Broadcom/Python-DevOps-30.git`
+Change the "Branch Specifier (blank for 'any')" to */main (it currently is */master).
 
-- Push your changes to GitHub:
-  - `git push`
+Scroll to the bottom and select "SAVE".
 
-## 62. Log in to Jenkins
 
-![Graphic 1 from slide 90](assets/content/slide-090-image-02.png)
+## 28. Build It!
+We are at the last step.  
 
-- Jenkins is a hosted application running on a web server. You can access it from most web browsers.
-- Log in to Jenkins: http://mfwsone.broadcom.com/jenkins/
-  - Username: _JENKINSCUST030
-  - Password: Mfuser30@26
+After saving the project, there should be a build button on the left.  Click it.  
 
-- Verify that the environment is in the right starting state
-  - Click on the name of your project (Workshop_030)
-  - Select the master branch
-  - Click Build Now in the left side menu and verify the project builds successfully.
+Good luck!
 
-## 65. Thank You
+## 29. Closing
+Thank you very much for attending! 

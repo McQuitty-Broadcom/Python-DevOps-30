@@ -16,12 +16,12 @@ pipeline {
         }
         stage('build') {
             steps {
-                sh '$VENV/bin/duty build'
+                sh 'echo build'
             }
         }
         stage('run') {
             steps {
-                sh '$VENV/bin/duty run'
+                sh 'echo run'
             }
         }
     }
