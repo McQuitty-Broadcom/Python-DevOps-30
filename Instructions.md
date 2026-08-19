@@ -7,8 +7,8 @@
 
 ## 2.  Accessing the environment.
 - The system is located at https://sn.ws.broadcom.com
-- Your login: is _SNCUST030
-- The password is SN_PASSWORD
+- Your login: is _SN_LOGON_
+- The password is _SN_PWD_
 
 One you log in, select the environment:
 ![simpleCommand](assets/content/login.png)
