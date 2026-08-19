@@ -10,7 +10,7 @@ from zowesupport import *
 def run(ctx):
     """Run Bind and Grant Jobs"""
     dataset = f"{config.runJCL}"
-    submitJobAndDownloadOutput(ctx, dataset, "job-archive", 0)
+    submitJobAndDownloadOutput(ctx, dataset, "output/job-archive", 0)
 
 @duty
 def build_cobol(ctx):
