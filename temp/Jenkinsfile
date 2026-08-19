@@ -39,7 +39,7 @@
                 "instance": "ENDEVOR",
                 "environment": "DEV",
                 "system": "DOGGOS",
-                "subsystem": "_LOGIN_",
+                "subsystem": "CUST022",
                 "type": "*",
                 "stageNumber": "1",
                 "maxrc": 8,
@@ -53,8 +53,8 @@
             "properties": {
                 "host": "10.1.2.55",
                 "rejectUnauthorized": false,
-                "user": "_LOGIN_",
-                "password": "_LOGIN_"
+                "user": "CUST022",
+                "password": "CUST022"
             },
             "secure": []
         }
