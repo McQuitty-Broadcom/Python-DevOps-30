@@ -15,13 +15,13 @@ def run(ctx):
 @duty
 def build_cobol(ctx):
     """Build Cobol Element"""
-    command = f"zowe endevor generate element {config.element} --type COBOL --os --maxrc 0 --sn 1"
+    command = f"zowe endevor generate element {config.element} --type COBOL --os --maxrc 0 --sn 1 --cb"
     simpleCommand(ctx, command, "output")
 
 @duty
 def build_lnk(ctx):
     """Build LNK Element"""
-    command = f"zowe endevor generate element {config.element} --type LNK --os --maxrc 0 --sn 1"
+    command = f"zowe endevor generate element {config.element} --type LNK --os --maxrc 0 --sn 1 --cb"
     simpleCommand(ctx, command, "output")
 
 @duty
