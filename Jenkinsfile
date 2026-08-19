@@ -1,71 +1,33 @@
-{
-    "$schema": "./zowe.schema.json",
-    "profiles": {
-        "zosmf": {
-            "type": "zosmf",
-            "properties": {
-                "port": 10443
-            },
-            "secure": []
-        },
-        "tso": {
-            "type": "tso",
-            "properties": {
-                "account": "",
-                "codePage": "1047",
-                "logonProcedure": "IZUFPROC"
-            },
-            "secure": []
-        },
-        "ssh": {
-            "type": "ssh",
-            "properties": {
-                "port": 2022
-            },
-            "secure": []
-        },
-        "endevor": {
-            "type": "endevor",
-            "properties": {
-                "port": 6002,
-                "protocol": "http",
-                "basePath": "/EndevorService/api/v2"
-            },
-            "secure": []
-        },
-        "endevor-location": {
-            "type": "endevor-location",
-            "properties": {
-                "instance": "ENDEVOR",
-                "environment": "DEV",
-                "system": "DOGGOS",
-                "subsystem": "_LOGIN_",
-                "type": "*",
-                "stageNumber": "1",
-                "maxrc": 8,
-                "comment": "Testing",
-                "ccid": "DOG123"
-            },
-            "secure": []
-        },
-        "base": {
-            "type": "base",
-            "properties": {
-                "host": "10.1.2.55",
-                "rejectUnauthorized": false,
-                "user": "_LOGIN_",
-                "password": "_LOGIN_"
-            },
-            "secure": []
+pipeline {
+    agent { label 'zowe-agent' }
+    environment {
+        // z/OSMF Connection Details
+    }
+    stages {
+        stage('local setup') {
+            steps {
+                sh 'node --version'
+                sh 'npm --version'
+                sh 'zowe --version'
+                sh 'zowe plugins list'
+
+
         }
-    },
-    "defaults": {
-        "zosmf": "zosmf",
-        "tso": "tso",
-        "ssh": "ssh",
-        "endevor": "endevor",
-        "endevor-location": "endevor-location",
-        "base": "base"
-    },
-    "autoStore": false
+        stage('build') {
+            steps {
+                    sh 'duty build'
+            }
+        }
+        stage('deploy') {
+            steps {
+                    sh 'duty deploy'
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'output/**/*.*' 
+        }
+    }
 }
